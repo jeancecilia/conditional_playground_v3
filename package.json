@@ -1,0 +1,9 @@
+{
+  "name": "cbt-live-public-r5",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "devDependencies": {
+    "@playwright/test": "1.49.1"
+  }
+}
