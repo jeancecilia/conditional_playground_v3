@@ -1,0 +1,36 @@
+name: CBT live PWA offline R3
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: cbt-live-pwa-r3-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline:
+    name: All offline routes and local persistence
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Test every deployed route offline and verify draft persistence
+        run: npx playwright test tests/pwa-offline-r3.spec.js
+      - name: Upload offline evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r3-pwa-offline
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            playwright-report
+            test-results
