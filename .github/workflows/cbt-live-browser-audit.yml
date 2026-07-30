@@ -1,0 +1,111 @@
+name: CBT live browser audit
+
+on:
+  push:
+    branches:
+      - qa/cbt-live-audit-20260730
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: cbt-live-browser-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core-flows:
+    name: Complete core flows — desktop and mobile
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Run full core journeys against the deployed Workers URL
+        run: npx playwright test tests/live-core.spec.js --project=desktop-chromium --project=mobile-chromium --grep="public deployment and complete core user journeys" --workers=2
+      - name: Upload core-flow evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-core-flows
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            playwright-report
+            test-results
+
+  all-routes:
+    name: Every app route — desktop and mobile
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Open, fill and interact with every deployed route
+        run: npx playwright test tests/live-core.spec.js --project=desktop-chromium --project=mobile-chromium --grep="every deployed application route" --workers=2
+      - name: Upload route screenshots, traces and interaction summaries
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-all-routes
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            playwright-report
+            test-results
+
+  pwa-offline:
+    name: PWA installability, offline mode and notifications
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Test the deployed service worker and all offline routes
+        run: npx playwright test tests/live-pwa.spec.js --project=pwa-chromium
+      - name: Upload PWA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-pwa-offline
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            playwright-report
+            test-results
+
+  camera-video:
+    name: Camera and local video feedback
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Test the deployed MediaRecorder flow with a synthetic camera
+        run: npx playwright test tests/live-media.spec.js --project=media-chromium
+      - name: Upload camera evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-camera-video
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            playwright-report
+            test-results
