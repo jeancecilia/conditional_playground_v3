@@ -1,0 +1,84 @@
+name: CBT live browser audit R2
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: cbt-live-r2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core-routes:
+    name: Hardened core and every route — desktop and mobile
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Test adult gate, problem solving and every deployed route
+        run: npx playwright test tests/core-r2.spec.js --project=desktop --project=mobile --workers=2
+      - name: Upload core evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r2-core-routes
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            playwright-report
+            test-results
+
+  pwa-r2:
+    name: Hardened PWA offline and notifications
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Test service worker, offline hydration, persistence and notifications
+        run: xvfb-run -a npx playwright test tests/pwa-r2.spec.js --project=pwa
+      - name: Upload PWA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r2-pwa
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            playwright-report
+            test-results
+
+  media-r2:
+    name: Hardened camera and video feedback
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Test live MediaRecorder and complete video-learning flow
+        run: npx playwright test tests/media-r2.spec.js --project=media
+      - name: Upload media evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r2-media
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            playwright-report
+            test-results
